@@ -98,15 +98,15 @@ export const ProjectsMenu: React.FC<ProjectsMenuProps> = ({
       {/* Top-Left Projects Trigger Pill Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-white hover:bg-gray-50 border border-gray-200 shadow-sm text-xs font-semibold text-black transition-all hover:border-black/30 group"
+        className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-white/80 hover:bg-gray-50 border border-gray-200/80 text-[11px] font-medium text-black transition-all hover:border-black/30 group shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
         title="Ver y gestionar mis proyectos de video"
       >
-        <Folder className="w-3.5 h-3.5 text-black group-hover:scale-110 transition-transform" />
-        <span className="font-bold">Proyectos</span>
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+        <Folder className="w-3 h-3 text-black/80 group-hover:scale-110 transition-transform" />
+        <span>Proyectos</span>
+        <span className={`px-1.5 py-0.2 rounded-full text-[9.5px] font-semibold ${
           usage.isLimitReached
             ? 'bg-amber-100 text-amber-900 border border-amber-300'
-            : 'bg-gray-100 text-gray-700'
+            : 'bg-black/5 text-black/70'
         }`}>
           {usage.count}/{usage.max}
         </span>

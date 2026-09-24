@@ -46,24 +46,24 @@ export const SpringNavTabs: React.FC<SpringNavTabsProps> = ({
 
   // Sizing classes
   const sizeClasses = {
-    sm: 'text-[11px] px-2.5 py-1 gap-1.5',
-    md: 'text-xs sm:text-[13px] px-3.5 sm:px-4 py-1.5 sm:py-2 gap-2',
-    lg: 'text-sm px-5 py-2.5 gap-2.5',
+    sm: 'text-[11px] px-2.5 py-0.5 sm:py-1 gap-1',
+    md: 'text-[11.5px] sm:text-xs px-3 sm:px-3.5 py-1 gap-1.5',
+    lg: 'text-xs sm:text-[13px] px-4 py-1.5 gap-2',
   }[size];
 
   // Container styling
   const containerVariants = {
-    light: 'bg-white/80 backdrop-blur-md border border-gray-200/90 shadow-sm',
-    dark: 'bg-black/90 backdrop-blur-md border border-white/15 shadow-md text-white',
-    floating: 'bg-white/95 backdrop-blur-xl border border-gray-200 shadow-lg',
-    subtle: 'bg-gray-100/90 backdrop-blur-sm border border-gray-200/80',
+    light: 'bg-white/80 backdrop-blur-md border border-gray-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.04)]',
+    dark: 'bg-black/90 backdrop-blur-md border border-white/10 shadow-md text-white',
+    floating: 'bg-white/95 backdrop-blur-xl border border-gray-200/90 shadow-md',
+    subtle: 'bg-gray-100/80 backdrop-blur-sm border border-black/[0.04]',
   }[variant];
 
   // Active pill background style
   const activePillStyle = {
-    light: 'bg-black text-white shadow-md shadow-black/10',
-    dark: 'bg-white text-black shadow-lg shadow-white/20',
-    floating: 'bg-black text-white shadow-md',
+    light: 'bg-black text-white shadow-sm',
+    dark: 'bg-white text-black shadow-sm',
+    floating: 'bg-black text-white shadow-sm',
     subtle: 'bg-black text-white shadow-sm',
   }[variant];
 

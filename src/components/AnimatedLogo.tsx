@@ -4,7 +4,7 @@ interface AnimatedLogoProps {
   className?: string;
   onClick?: () => void;
   replayOnHover?: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 export const AnimatedLogo: React.FC<AnimatedLogoProps> = ({
@@ -58,9 +58,10 @@ export const AnimatedLogo: React.FC<AnimatedLogoProps> = ({
   };
 
   const sizeClasses = {
-    sm: 'h-7 sm:h-8',
-    md: 'h-8 sm:h-9 md:h-10',
-    lg: 'h-11 sm:h-12 md:h-14',
+    sm: 'h-8 sm:h-9',
+    md: 'h-11 sm:h-12 md:h-14',
+    lg: 'h-14 sm:h-16 md:h-20',
+    xl: 'h-18 sm:h-22 md:h-24',
   }[size];
 
   return (

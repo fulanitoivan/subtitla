@@ -65,13 +65,21 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-xl border-b border-gray-100 px-4 lg:px-8 py-2.5 transition-all">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-50 w-full bg-white/85 backdrop-blur-xl border-b border-black/[0.06] px-4 sm:px-6 lg:px-8 py-1 sm:py-1.5 transition-all">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 sm:gap-4">
         
-        {/* Left Section: Projects Menu + Brand Logo */}
-        <div className="flex items-center space-x-3 sm:space-x-4 flex-shrink-0">
+        {/* Left Section: Brand Logo (Enlarged) + Projects Menu */}
+        <div className="flex items-center space-x-2.5 sm:space-x-3.5 flex-shrink-0">
           
-          {/* Projects Menu Dropdown with 10 Project Limit */}
+          {/* Animated Brand Logo (Prominent, High Impact) */}
+          <AnimatedLogo
+            onClick={() => setCurrentView('landing')}
+            size="lg"
+          />
+
+          <div className="h-3.5 w-px bg-black/10 hidden sm:block" />
+
+          {/* Projects Menu Dropdown with Compact Pill */}
           <ProjectsMenu
             currentProject={currentProject}
             user={user}
@@ -79,17 +87,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             onNewProject={onNewProject}
             onOpenUpgradeModal={onOpenUpgradeModal}
           />
-
-          <div className="h-4 w-px bg-gray-200 hidden sm:block" />
-
-          {/* Animated Brand Logo (Video Logo that animates on load and stops at final frame) */}
-          <AnimatedLogo
-            onClick={() => setCurrentView('landing')}
-            size="md"
-          />
         </div>
 
-        {/* Center Navigation Links with Spring Physics */}
+        {/* Center Navigation Links with Spring Physics (Ultra Minimalist) */}
         <div className="hidden lg:flex items-center justify-center">
           {currentView === 'landing' ? (
             <SpringNavTabs
@@ -97,7 +97,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               activeId={activeSection}
               layoutId="landing-nav-pill"
               variant="subtle"
-              size="md"
+              size="sm"
             />
           ) : (
             hasVideo && (
@@ -107,14 +107,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onChange={(id) => setActiveTab(id as 'style' | 'transcript')}
                 layoutId="studio-navbar-pill"
                 variant="subtle"
-                size="md"
+                size="sm"
               />
             )
           )}
         </div>
 
-        {/* Right Section: Studio Switcher, Gemini IA Status, User Auth & Export */}
-        <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+        {/* Right Section: Studio Switcher, User Auth & Export */}
+        <div className="flex items-center space-x-2 sm:space-x-2.5 flex-shrink-0">
           
           {/* Studio / Landing Spring Switcher */}
           <SpringNavTabs
@@ -131,15 +131,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center space-x-2 p-1 pr-2.5 rounded-full bg-white hover:bg-gray-50 border border-gray-200 shadow-sm text-xs font-semibold text-black transition-colors"
+                className="flex items-center space-x-1.5 p-1 pr-2 rounded-full bg-white/80 hover:bg-gray-50 border border-gray-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.03)] text-[11px] font-medium text-black transition-colors"
               >
                 <img
                   src={user.avatar}
                   alt={user.name}
-                  className="w-6 h-6 rounded-full object-cover border border-black/10"
+                  className="w-5 h-5 rounded-full object-cover border border-black/10"
                 />
-                <span className="hidden md:inline max-w-[100px] truncate">{user.name}</span>
-                <ChevronDown className="w-3 h-3 text-gray-400" />
+                <span className="hidden md:inline max-w-[90px] truncate">{user.name}</span>
+                <ChevronDown className="w-2.5 h-2.5 text-gray-400" />
               </button>
 
               {showUserMenu && (
@@ -167,16 +167,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
           ) : (
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1.5 sm:space-x-2">
               <button
                 onClick={() => onOpenAuthModal('login')}
-                className="hidden sm:block px-3 py-1.5 rounded-full text-xs font-medium text-black hover:opacity-60 transition-opacity"
+                className="hidden sm:block px-2.5 py-1 rounded-full text-[11px] font-medium text-black/70 hover:text-black transition-colors"
               >
                 Iniciar Sesión
               </button>
               <button
                 onClick={() => onOpenAuthModal('register')}
-                className="rounded-full bg-black px-4 sm:px-5 py-1.5 sm:py-2 font-[Poppins] text-xs sm:text-[13px] text-white shadow-sm transition hover:opacity-90 active:scale-95"
+                className="rounded-full bg-black px-3.5 sm:px-4 py-1 sm:py-1.5 font-[Poppins] text-[11.5px] sm:text-xs text-white shadow-sm transition hover:opacity-90 active:scale-95"
               >
                 Pruébalo gratis
               </button>
@@ -188,9 +188,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onOpenExportModal}
               disabled={isProcessing}
-              className="flex items-center space-x-1.5 px-4 py-1.5 rounded-full bg-black hover:opacity-90 text-white text-xs font-medium shadow-sm transition-all active:scale-95 disabled:opacity-50"
+              className="flex items-center space-x-1.5 px-3.5 py-1 sm:py-1.5 rounded-full bg-black hover:opacity-90 text-white text-xs font-medium shadow-sm transition-all active:scale-95 disabled:opacity-50"
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3 h-3" />
               <span>Exportar</span>
             </button>
           )}
