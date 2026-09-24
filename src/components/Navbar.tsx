@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, Download, Sliders, FileText, LogOut, ChevronDown, Video, Globe, CreditCard, HelpCircle } from 'lucide-react';
 import { ProjectsMenu } from './ProjectsMenu';
+import { AnimatedLogo } from './AnimatedLogo';
 import { SpringNavTabs, type SpringTabItem } from './Navigation/SpringNavTabs';
 import { useActiveSection } from '../hooks/useActiveSection';
 import type { UserProfile } from '../types/auth';
@@ -81,18 +82,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <div className="h-4 w-px bg-gray-200 hidden sm:block" />
 
-          {/* Voicecheap Brand Logo */}
-          <div
-            className="flex items-center space-x-2 cursor-pointer select-none group"
+          {/* Animated Brand Logo (Video Logo that animates on load and stops at final frame) */}
+          <AnimatedLogo
             onClick={() => setCurrentView('landing')}
-          >
-            <div className="w-7 h-7 rounded-full bg-black flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform">
-              <Sparkles className="w-3.5 h-3.5" />
-            </div>
-            <span className="font-extrabold text-sm sm:text-base tracking-tight text-black">
-              Subti<span className="text-black/70">tla</span>
-            </span>
-          </div>
+            size="md"
+          />
         </div>
 
         {/* Center Navigation Links with Spring Physics */}

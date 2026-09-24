@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles } from 'lucide-react';
+import { AnimatedLogo } from '../AnimatedLogo';
 
 export const Footer: React.FC = () => {
   return (
@@ -7,12 +7,7 @@ export const Footer: React.FC = () => {
       <div className="max-w-5xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
         
         <div className="flex items-center space-x-3">
-          <div className="w-6 h-6 rounded-full bg-black flex items-center justify-center text-white">
-            <Sparkles className="w-3 h-3" />
-          </div>
-          <span className="font-extrabold text-sm text-black tracking-tight">
-            Subti<span className="text-black/60">tla</span>
-          </span>
+          <AnimatedLogo size="sm" />
           <span className="text-gray-300">|</span>
           <span>© 2026 Subtitla. Todos los derechos reservados.</span>
         </div>
