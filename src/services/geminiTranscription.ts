@@ -1,13 +1,11 @@
 import type { SubtitleSegment, Word } from '../types/subtitle';
 
-// Candidate models ordered by lowest latency & highest availability
+// Candidate models supporting audio input and structured JSON generation
 const CANDIDATE_MODELS = [
-  'gemini-3.1-flash-lite',    // Blazing fast ~2s latency, native audio & JSON support
-  'gemini-flash-latest',      // Fast ~4s latency, stable general alias
-  'gemini-3.5-flash-lite',    // Lightweight fallback
-  'gemini-3.5-flash',         // High-quality Flash model
-  'gemini-3.8-flash',         // Latest generation
-  'gemini-3.6-flash',         // Production fallback
+  'gemini-3.1-flash-lite',     // Fast, stable audio + JSON mode
+  'gemini-3-flash-preview',     // High-speed preview fallback
+  'gemini-3.8-flash',          // Latest generation Flash model
+  'gemini-3.5-flash',          // Flash fallback
 ];
 
 export const DEFAULT_GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
@@ -15,32 +13,55 @@ export const DEFAULT_GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 export async function transcribeWithGemini(
   audioBlob: Blob,
   apiKey?: string,
-  onProgress?: (status: string) => void
+  onProgress?: (status: string) => void,
+  durationSeconds?: number
 ): Promise<SubtitleSegment[]> {
   const activeKey = (apiKey || DEFAULT_GEMINI_KEY).trim();
   if (!activeKey) {
-    throw new Error('Error al conectar con el motor de transcripción IA');
+    throw new Error('Error al conectar con el motor de transcripción IA (clave no configurada)');
   }
 
-  onProgress?.('Extrayendo audio optimizado...');
+  onProgress?.('Codificando audio del video...');
   const base64Audio = await blobToBase64(audioBlob);
 
-  const prompt = `Actúa como un transcriptor profesional de audio para subtítulos virales de video.
-Transcribe con exactitud fonética todo lo que se dice en este audio. Detecta el idioma automáticamente (por ejemplo español).
-Genera marcas de tiempo exactas palabra por palabra (start y end en segundos).
+  const durationNotice = durationSeconds && durationSeconds > 0
+    ? `La duración exacta del archivo de audio es de ${durationSeconds.toFixed(1)} segundos.`
+    : `El archivo de audio tiene una duración completa continua.`;
 
-Devuelve EXCLUSIVAMENTE un objeto JSON válido con la siguiente estructura exacta:
+  const prompt = `Eres un sistema profesional de transcripción e IA para subtítulos dinámicos de video (formato Reels, TikTok y YouTube Shorts).
+${durationNotice}
+
+INSTRUCCIONES OBLIGATORIAS:
+1. Escucha TODO el archivo de audio de principio a fin, desde el segundo 0.0 hasta el último segundo del archivo.
+2. Transcribe ABSOLUTAMENTE TODAS las palabras y frases habladas sin omitir, resumir ni cortar nada.
+3. Divide todo el discurso de manera secuencial y continua en múltiples segmentos cortos (cada segmento debe contener entre 2 y 5 palabras, con una duración aproximada de 1.2 a 2.5 segundos por frase).
+4. Genera marcas de tiempo exactas ("start" y "end" en segundos flotantes con decimales) para cada segmento y para cada palabra individual dentro del segmento.
+5. Los segmentos deben cubrir toda la duración del audio de forma progresiva. El último segmento debe coincidir con el final del discurso hablado en el audio.
+
+Devuelve EXCLUSIVAMENTE un objeto JSON válido con la lista completa de todos los segmentos:
 {
+  "language": "es",
   "segments": [
     {
-      "id": "seg-0",
+      "id": "seg_0",
       "start": 0.0,
-      "end": 2.4,
-      "text": "Frase de 3 a 5 palabras",
+      "end": 2.1,
+      "text": "Frase de inicio",
       "words": [
-        { "id": "w0", "word": "palabra1", "start": 0.0, "end": 0.6 },
-        { "id": "w1", "word": "palabra2", "start": 0.6, "end": 1.2 },
-        { "id": "w2", "word": "palabra3", "start": 1.2, "end": 2.4 }
+        { "id": "w_0_0", "word": "Frase", "start": 0.0, "end": 0.6 },
+        { "id": "w_0_1", "word": "de", "start": 0.6, "end": 1.1 },
+        { "id": "w_0_2", "word": "inicio", "start": 1.1, "end": 2.1 }
+      ]
+    },
+    {
+      "id": "seg_1",
+      "start": 2.1,
+      "end": 4.5,
+      "text": "Siguiente frase continua",
+      "words": [
+        { "id": "w_1_0", "word": "Siguiente", "start": 2.1, "end": 3.0 },
+        { "id": "w_1_1", "word": "frase", "start": 3.0, "end": 3.7 },
+        { "id": "w_1_2", "word": "continua", "start": 3.7, "end": 4.5 }
       ]
     }
   ]
@@ -56,7 +77,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con la siguiente estructura exact
     const model = CANDIDATE_MODELS[i];
     
     try {
-      onProgress?.(`Procesando con Google Gemini (${model})...`);
+      onProgress?.(`Transcribiendo con Google Gemini (${model})...`);
 
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(cleanKey)}`;
 
@@ -67,7 +88,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con la siguiente estructura exact
               { text: prompt },
               {
                 inlineData: {
-                  mimeType: mimeType.includes('audio') ? mimeType : 'audio/wav',
+                  mimeType: mimeType.includes('audio') || mimeType.includes('video') ? mimeType : 'audio/wav',
                   data: rawData,
                 },
               },
@@ -77,11 +98,12 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con la siguiente estructura exact
         generationConfig: {
           responseMimeType: 'application/json',
           temperature: 0.1,
+          maxOutputTokens: 8192,
         },
       };
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s fast timeout per model
+      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout for complete transcription
 
       const response = await fetch(url, {
         method: 'POST',
@@ -119,10 +141,10 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con la siguiente estructura exact
         continue;
       }
 
-      // Validate and normalize segments & word-level timestamps
+      // Validate and normalize all segments & word-level timestamps
       const normalizedSegments: SubtitleSegment[] = parsed.segments.map((seg: SubtitleSegment, sIdx: number) => {
-        const start = typeof seg.start === 'number' ? seg.start : 0;
-        const end = typeof seg.end === 'number' ? seg.end : start + 2;
+        const start = typeof seg.start === 'number' ? Math.max(0, seg.start) : sIdx * 2.5;
+        const end = typeof seg.end === 'number' ? Math.max(start + 0.3, seg.end) : start + 2.5;
         const text = seg.text || '';
 
         let words: Word[] = [];

@@ -245,19 +245,24 @@ export function App() {
   const handleTranscribeFile = async (file: File) => {
     setIsTranscribing(true);
     setTranscriptionStatus('Extrayendo audio optimizado del video...');
-    setCurrentView('studio');
+    handleNavigateView('studio');
 
     try {
-      const audioBlob = await extractAudioFromVideo(file);
+      const extracted = await extractAudioFromVideo(file);
 
-      const resultSegments = await transcribeWithGemini(audioBlob, apiKeys.geminiKey, (status) => {
-        setTranscriptionStatus(status);
-      });
+      const resultSegments = await transcribeWithGemini(
+        extracted.blob,
+        apiKeys.geminiKey,
+        (status) => {
+          setTranscriptionStatus(status);
+        },
+        extracted.duration
+      );
 
       const videoUrl = URL.createObjectURL(file);
       const newVideoData: VideoMetadata = {
         name: file.name,
-        duration: 0,
+        duration: extracted.duration || 0,
         width: 1080,
         height: 1920,
         url: videoUrl,

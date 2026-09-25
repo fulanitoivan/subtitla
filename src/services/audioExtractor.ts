@@ -1,31 +1,87 @@
 /**
  * Extrae la pista de audio de un archivo de video en el navegador usando AudioContext
- * y la exporta como un Blob de audio WAV ligero para enviar a la API de IA.
+ * y la exporta como un Blob de audio WAV ligero optimizado para la API de IA.
  */
-export async function extractAudioFromVideo(videoFile: File): Promise<Blob> {
-  const arrayBuffer = await videoFile.arrayBuffer();
+export interface ExtractedAudio {
+  blob: Blob;
+  duration: number;
+}
+
+export async function extractAudioFromVideo(videoFile: File): Promise<ExtractedAudio> {
   const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
   
   try {
+    const arrayBuffer = await videoFile.arrayBuffer();
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    return bufferToWav(audioBuffer);
+    const wavBlob = bufferToWav(audioBuffer);
+    return {
+      blob: wavBlob,
+      duration: audioBuffer.duration,
+    };
+  } catch (err) {
+    console.warn('AudioContext decodeAudioData fallback, using original file blob:', err);
+    // If Web Audio API decode fails (e.g. video format without standalone audio track in Web Audio),
+    // get duration from temporary video element and send file directly to multimodal Gemini API
+    const duration = await getVideoDuration(videoFile);
+    return {
+      blob: videoFile,
+      duration,
+    };
   } finally {
-    await audioContext.close();
+    try {
+      await audioContext.close();
+    } catch {
+      // ignore
+    }
   }
+}
+
+// Obtenemos la duración real del video a través de un elemento HTML5 Video temporal
+function getVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve) => {
+    const tempVideo = document.createElement('video');
+    tempVideo.preload = 'metadata';
+    const url = URL.createObjectURL(file);
+    tempVideo.src = url;
+
+    tempVideo.onloadedmetadata = () => {
+      URL.revokeObjectURL(url);
+      resolve(tempVideo.duration || 0);
+    };
+
+    tempVideo.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(0);
+    };
+  });
 }
 
 // Conversor de AudioBuffer a WAV PCM 16-bit
 function bufferToWav(buffer: AudioBuffer): Blob {
-  const sampleRate = Math.min(buffer.sampleRate, 16000); // 16kHz es el estándar óptimo de Whisper (mono)
+  const sampleRate = Math.min(buffer.sampleRate, 16000); // 16kHz es el estándar óptimo de Whisper y Gemini (mono)
   const length = Math.floor(buffer.duration * sampleRate);
   const outBuffer = new Float32Array(length);
 
-  // Mezclar canales a mono y remuestrear si es necesario
-  const inputData = buffer.getChannelData(0);
+  // Mezclar canales a mono y remuestrear
+  const channels = buffer.numberOfChannels;
   const step = buffer.sampleRate / sampleRate;
-  for (let i = 0; i < length; i++) {
-    const srcIndex = Math.floor(i * step);
-    outBuffer[i] = inputData[srcIndex] || 0;
+
+  if (channels === 1) {
+    const inputData = buffer.getChannelData(0);
+    for (let i = 0; i < length; i++) {
+      const srcIndex = Math.floor(i * step);
+      outBuffer[i] = inputData[srcIndex] || 0;
+    }
+  } else {
+    // Promedio de canales estéreo a mono
+    const leftData = buffer.getChannelData(0);
+    const rightData = buffer.getChannelData(1);
+    for (let i = 0; i < length; i++) {
+      const srcIndex = Math.floor(i * step);
+      const left = leftData[srcIndex] || 0;
+      const right = rightData[srcIndex] || 0;
+      outBuffer[i] = (left + right) / 2;
+    }
   }
 
   const wavData = encodeWAV(outBuffer, sampleRate, 1);
