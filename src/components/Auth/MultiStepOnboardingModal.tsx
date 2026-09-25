@@ -288,23 +288,36 @@ export const MultiStepOnboardingModal: React.FC<MultiStepOnboardingModalProps> =
 
     try {
       const customName = answers.name.trim() || 'Creador de Subtitla';
-      const userProfile = await signInWithGoogleReal(undefined, customName);
-      
-      // Save onboarding answers in localStorage
+      // Save pending onboarding in case redirect is needed
       try {
-        localStorage.setItem(`onboarding_${userProfile.id}`, JSON.stringify(answers));
+        localStorage.setItem('pending_onboarding_answers', JSON.stringify(answers));
       } catch {
         // ignore
       }
 
-      setSuccessMessage(`¡Conectado con Google exitosamente! Bienvenido, ${userProfile.name}.`);
-      fireCelebrationConfetti();
+      const userProfile = await signInWithGoogleReal(undefined, customName, () => {
+        setSuccessMessage('Redirigiendo a Google para inicio de sesión seguro...');
+      });
+      
+      // If popup succeeded without full page redirect
+      if (userProfile && userProfile.id) {
+        // Save onboarding answers in localStorage
+        try {
+          localStorage.setItem(`onboarding_${userProfile.id}`, JSON.stringify(answers));
+          localStorage.removeItem('pending_onboarding_answers');
+        } catch {
+          // ignore
+        }
 
-      setTimeout(() => {
-        setGoogleLoading(false);
-        onAuthSuccess(userProfile);
-        onClose();
-      }, 900);
+        setSuccessMessage(`¡Conectado con Google exitosamente! Bienvenido, ${userProfile.name}.`);
+        fireCelebrationConfetti();
+
+        setTimeout(() => {
+          setGoogleLoading(false);
+          onAuthSuccess(userProfile);
+          onClose();
+        }, 800);
+      }
     } catch (err: unknown) {
       setGoogleLoading(false);
       const msg = err instanceof Error ? err.message : 'Error al conectar con Google.';

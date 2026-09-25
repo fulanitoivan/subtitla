@@ -27,7 +27,14 @@ import type { VideoProject } from './types/project';
 import { useVideoSync } from './hooks/useVideoSync';
 import { extractAudioFromVideo } from './services/audioExtractor';
 import { transcribeWithGemini } from './services/geminiTranscription';
-import { getCurrentSession, logoutUser, deductUserMinutes } from './services/authService';
+import {
+  getCurrentSession,
+  setActiveSession,
+  logoutUser,
+  deductUserMinutes,
+  checkFirebaseRedirectResult,
+  subscribeToFirebaseAuthState,
+} from './services/authService';
 import { saveProject, getProjects } from './services/projectService';
 
 export function App() {
@@ -123,11 +130,31 @@ export function App() {
       }));
     }
 
+    // Check if user just completed Google Redirect Sign-In
+    checkFirebaseRedirectResult().then((redirectUser) => {
+      if (redirectUser) {
+        setUser(redirectUser);
+        setActiveSession(redirectUser);
+      }
+    });
+
+    // Subscribe to Firebase Auth state
+    const unsubscribeAuth = subscribeToFirebaseAuthState((fbUser) => {
+      if (fbUser) {
+        setUser(fbUser);
+        setActiveSession(fbUser);
+      }
+    });
+
     // Load initial project if exists
     const projects = getProjects();
     if (projects.length > 0 && !currentProject) {
       setCurrentProject(projects[0]);
     }
+
+    return () => {
+      unsubscribeAuth();
+    };
   }, []);
 
   const handleAuthSuccess = (authenticatedUser: UserProfile) => {

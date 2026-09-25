@@ -5,7 +5,11 @@ import {
   registerWithFirebaseEmail,
   loginWithFirebaseEmail,
   signOutFirebase,
+  checkFirebaseRedirectResult,
+  subscribeToFirebaseAuthState,
 } from './firebaseAuthService';
+
+export { checkFirebaseRedirectResult, subscribeToFirebaseAuthState };
 
 export interface StoredAccount {
   id: string;
@@ -179,15 +183,19 @@ export async function loginUser(email: string, password: string): Promise<UserPr
 }
 
 // Google Sign-In (Official Firebase Google Popup if configured, or real Google OAuth account)
-export async function signInWithGoogleReal(customEmail?: string, customName?: string): Promise<UserProfile> {
+export async function signInWithGoogleReal(
+  customEmail?: string,
+  customName?: string,
+  onRedirecting?: () => void
+): Promise<UserProfile> {
   const fbAuth = initFirebase();
   if (fbAuth) {
     try {
-      const fbUser = await signInWithFirebaseGoogle();
+      const fbUser = await signInWithFirebaseGoogle(onRedirecting);
       setActiveSession(fbUser);
       return fbUser;
     } catch (fbErr) {
-      console.warn('Firebase Google Sign-In canceled or failed', fbErr);
+      console.warn('Firebase Google Sign-In failed', fbErr);
       throw fbErr;
     }
   }

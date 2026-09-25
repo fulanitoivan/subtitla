@@ -3,6 +3,9 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  onAuthStateChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
@@ -83,27 +86,114 @@ export function mapFirebaseUserToProfile(user: User): UserProfile {
   };
 }
 
-// Real Google Sign-In with Firebase Popup
-export async function signInWithFirebaseGoogle(): Promise<UserProfile> {
+// Parse Firebase Auth errors into clear Spanish messages
+export function parseFirebaseAuthError(err: unknown): string {
+  if (typeof err === 'object' && err !== null && 'code' in err) {
+    const code = (err as { code: string }).code;
+    switch (code) {
+      case 'auth/popup-blocked':
+        return 'El navegador bloqueó la ventana emergente. Hemos iniciado la autenticación por redirección.';
+      case 'auth/popup-closed-by-user':
+        return 'Se cerró la ventana de Google antes de finalizar el acceso.';
+      case 'auth/cancelled-popup-request':
+        return 'Se canceló la solicitud de autenticación anterior.';
+      case 'auth/email-already-in-use':
+        return 'Ya existe una cuenta con este correo electrónico.';
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+        return 'Contraseña o credenciales incorrectas.';
+      case 'auth/user-not-found':
+        return 'No se encontró ninguna cuenta con este correo.';
+      case 'auth/weak-password':
+        return 'La contraseña es muy débil (mínimo 6 caracteres).';
+      case 'auth/unauthorized-domain':
+        return 'Dominio no autorizado en Firebase. Añade el dominio en la consola de Firebase.';
+      default:
+        break;
+    }
+  }
+  return err instanceof Error ? err.message : 'Error de autenticación con Firebase.';
+}
+
+// Real Google Sign-In with Popup and Automatic Redirect Fallback
+export async function signInWithFirebaseGoogle(onRedirecting?: () => void): Promise<UserProfile> {
   const auth = initFirebase();
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
-  const credential = await signInWithPopup(auth, provider);
-  return mapFirebaseUserToProfile(credential.user);
+
+  try {
+    const credential = await signInWithPopup(auth, provider);
+    return mapFirebaseUserToProfile(credential.user);
+  } catch (err: unknown) {
+    const errorCode = typeof err === 'object' && err !== null && 'code' in err ? (err as { code: string }).code : '';
+    const errorMsg = err instanceof Error ? err.message : '';
+
+    // If popup is blocked by Safari/Chrome or user agent, fallback to redirect
+    if (errorCode === 'auth/popup-blocked' || errorMsg.includes('popup-blocked')) {
+      console.warn('Popup blocked by browser. Falling back to signInWithRedirect...');
+      if (onRedirecting) {
+        onRedirecting();
+      }
+      await signInWithRedirect(auth, provider);
+      // Return a pending promise while the browser navigates to Google
+      return new Promise(() => {});
+    }
+
+    throw new Error(parseFirebaseAuthError(err));
+  }
+}
+
+// Check for redirect result on app initialization (when user returns from Google OAuth redirect)
+export async function checkFirebaseRedirectResult(): Promise<UserProfile | null> {
+  try {
+    const auth = initFirebase();
+    const result = await getRedirectResult(auth);
+    if (result && result.user) {
+      return mapFirebaseUserToProfile(result.user);
+    }
+  } catch (err) {
+    console.error('Error handling Firebase redirect result:', err);
+  }
+  return null;
+}
+
+// Subscribe to Firebase Auth state updates
+export function subscribeToFirebaseAuthState(callback: (user: UserProfile | null) => void): () => void {
+  try {
+    const auth = initFirebase();
+    return onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        callback(mapFirebaseUserToProfile(firebaseUser));
+      } else {
+        callback(null);
+      }
+    });
+  } catch (err) {
+    console.error('Error subscribing to Firebase auth state:', err);
+    return () => {};
+  }
 }
 
 // Real Email Registration on Firebase Server
 export async function registerWithFirebaseEmail(email: string, pass: string): Promise<UserProfile> {
   const auth = initFirebase();
-  const credential = await createUserWithEmailAndPassword(auth, email, pass);
-  return mapFirebaseUserToProfile(credential.user);
+  try {
+    const credential = await createUserWithEmailAndPassword(auth, email, pass);
+    return mapFirebaseUserToProfile(credential.user);
+  } catch (err) {
+    throw new Error(parseFirebaseAuthError(err));
+  }
 }
 
 // Real Email Login on Firebase Server
 export async function loginWithFirebaseEmail(email: string, pass: string): Promise<UserProfile> {
   const auth = initFirebase();
-  const credential = await signInWithEmailAndPassword(auth, email, pass);
-  return mapFirebaseUserToProfile(credential.user);
+  try {
+    const credential = await signInWithEmailAndPassword(auth, email, pass);
+    return mapFirebaseUserToProfile(credential.user);
+  } catch (err) {
+    throw new Error(parseFirebaseAuthError(err));
+  }
 }
 
 // Real Logout from Firebase
