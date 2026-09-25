@@ -8,6 +8,7 @@ import { ExportModal } from './components/ExportModal';
 import { AuthModal } from './components/Auth/AuthModal';
 import { BackgroundLiquidGlobes } from './components/BackgroundLiquidGlobes';
 import { SpringNavTabs } from './components/Navigation/SpringNavTabs';
+import { ProjectsGalleryPage } from './components/Projects/ProjectsGalleryPage';
 import { Sliders, FileText } from 'lucide-react';
 
 // Landing Page Components
@@ -35,13 +36,14 @@ import {
   checkFirebaseRedirectResult,
   subscribeToFirebaseAuthState,
 } from './services/authService';
-import { saveProject, getProjects } from './services/projectService';
+import { saveProject, getProjects, hydrateProjectVideo } from './services/projectService';
 
 export function App() {
-  // Navigation & View State with URL routing sync
-  const [currentView, setCurrentView] = useState<'landing' | 'studio'>(() => {
+  // Navigation & View State with URL routing sync ('landing' | 'projects' | 'studio')
+  const [currentView, setCurrentView] = useState<'landing' | 'projects' | 'studio'>(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname.toLowerCase();
+      if (path === '/projects' || path === '/proyectos') return 'projects';
       if (path === '/editor' || path === '/studio' || path === '/app') return 'studio';
     }
     return 'landing';
@@ -51,7 +53,9 @@ export function App() {
   useEffect(() => {
     const handleRouteChange = () => {
       const path = window.location.pathname.toLowerCase();
-      if (path === '/editor' || path === '/studio' || path === '/app') {
+      if (path === '/projects' || path === '/proyectos') {
+        setCurrentView('projects');
+      } else if (path === '/editor' || path === '/studio' || path === '/app') {
         setCurrentView('studio');
       } else {
         setCurrentView('landing');
@@ -62,9 +66,9 @@ export function App() {
     return () => window.removeEventListener('popstate', handleRouteChange);
   }, []);
 
-  const handleNavigateView = (view: 'landing' | 'studio') => {
+  const handleNavigateView = (view: 'landing' | 'projects' | 'studio') => {
     setCurrentView(view);
-    const targetPath = view === 'studio' ? '/editor' : '/';
+    const targetPath = view === 'projects' ? '/projects' : view === 'studio' ? '/editor' : '/';
     if (window.location.pathname !== targetPath) {
       window.history.pushState(null, '', targetPath);
     }
@@ -97,7 +101,7 @@ export function App() {
     groqKey: '',
   });
 
-  // Load User, Projects & API keys on mount
+  // Load User, Projects & API keys on mount with video hydration
   useEffect(() => {
     // Load real persistent session
     const activeSession = getCurrentSession();
@@ -146,10 +150,21 @@ export function App() {
       }
     });
 
-    // Load initial project if exists
+    // Load initial project if exists and hydrate video URL from IndexedDB
     const projects = getProjects();
     if (projects.length > 0 && !currentProject) {
-      setCurrentProject(projects[0]);
+      hydrateProjectVideo(projects[0]).then((hydrated) => {
+        setCurrentProject(hydrated);
+        if (hydrated.video) {
+          setVideo(hydrated.video);
+        }
+        if (hydrated.segments) {
+          setSegments(hydrated.segments);
+        }
+        if (hydrated.style) {
+          setStyle(hydrated.style);
+        }
+      });
     }
 
     return () => {
@@ -185,13 +200,14 @@ export function App() {
     seekTo,
   } = useVideoSync({ segments });
 
-  // Handle loading a project from ProjectsMenu
-  const handleSelectProject = (project: VideoProject) => {
-    setCurrentProject(project);
-    setVideo(project.video);
-    setSegments(project.segments);
-    setStyle(project.style);
-    setCurrentView('studio');
+  // Handle loading a project from ProjectsGallery or ProjectsMenu
+  const handleSelectProject = async (project: VideoProject) => {
+    const hydrated = await hydrateProjectVideo(project);
+    setCurrentProject(hydrated);
+    setVideo(hydrated.video);
+    setSegments(hydrated.segments);
+    setStyle(hydrated.style);
+    handleNavigateView('studio');
   };
 
   // Handle starting a fresh new project
@@ -199,7 +215,7 @@ export function App() {
     setCurrentProject(null);
     setVideo(null);
     setSegments(DEMO_VIDEOS[0].segments);
-    setCurrentView('studio');
+    handleNavigateView('studio');
   };
 
   // Handle loading a video (demo or manual upload)
@@ -327,12 +343,12 @@ export function App() {
         setCurrentView={handleNavigateView}
       />
 
-      {/* Main Content Area: Landing View vs Studio View */}
+      {/* Main Content Area: Landing View vs Projects Gallery vs Studio View */}
       {currentView === 'landing' ? (
         /* LANDING PAGE (Voicecheap Minimalist Pure White) */
         <main className="flex-1 flex flex-col bg-white">
           <HeroSection
-            onStartCreating={() => handleNavigateView('studio')}
+            onStartCreating={() => handleNavigateView('projects')}
           />
           <HowItWorks />
           <StylesShowcase onSelectStyleAndCreate={(styleId) => {
@@ -354,6 +370,16 @@ export function App() {
           <PricingSection onSelectPlan={() => handleOpenAuthModal('register')} />
           <FaqSection />
           <Footer />
+        </main>
+      ) : currentView === 'projects' ? (
+        /* PROJECTS GALLERY / WORKSPACE VIEW */
+        <main className="flex-1 flex flex-col bg-white">
+          <ProjectsGalleryPage
+            user={user}
+            onSelectProject={handleSelectProject}
+            onNewProject={handleNewProject}
+            onOpenUpgradeModal={() => handleOpenAuthModal('register')}
+          />
         </main>
       ) : (
         /* STUDIO WORKSPACE (Voicecheap Minimalist Editor) */

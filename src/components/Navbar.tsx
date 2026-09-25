@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Download, Sliders, FileText, LogOut, ChevronDown, Video, Globe, CreditCard, HelpCircle } from 'lucide-react';
+import { Sparkles, Download, Sliders, FileText, LogOut, ChevronDown, Video, Globe, CreditCard, HelpCircle, Folder } from 'lucide-react';
 import { ProjectsMenu } from './ProjectsMenu';
 import { AnimatedLogo } from './AnimatedLogo';
 import { SpringNavTabs, type SpringTabItem } from './Navigation/SpringNavTabs';
@@ -20,8 +20,8 @@ interface NavbarProps {
   setActiveTab: (tab: 'style' | 'transcript') => void;
   hasVideo: boolean;
   isProcessing: boolean;
-  currentView: 'landing' | 'studio';
-  setCurrentView: (view: 'landing' | 'studio') => void;
+  currentView: 'landing' | 'projects' | 'studio';
+  setCurrentView: (view: 'landing' | 'projects' | 'studio') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -61,7 +61,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const viewTabs: SpringTabItem[] = [
     { id: 'landing', label: 'Inicio', icon: <Sparkles className="w-3.5 h-3.5" /> },
-    { id: 'studio', label: 'Editor', icon: <Video className="w-3.5 h-3.5" /> },
+    { id: 'projects', label: 'Proyectos', icon: <Folder className="w-3.5 h-3.5" /> },
+    ...(hasVideo || currentView === 'studio'
+      ? [{ id: 'studio', label: 'Editor', icon: <Video className="w-3.5 h-3.5" /> }]
+      : []),
   ];
 
   return (
@@ -116,11 +119,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Right Section: Studio Switcher, User Auth & Export */}
         <div className="flex items-center space-x-2 sm:space-x-2.5 flex-shrink-0">
           
-          {/* Studio / Landing Spring Switcher */}
+          {/* Studio / Projects / Landing Spring Switcher */}
           <SpringNavTabs
             tabs={viewTabs}
             activeId={currentView}
-            onChange={(id) => setCurrentView(id as 'landing' | 'studio')}
+            onChange={(id) => setCurrentView(id as 'landing' | 'projects' | 'studio')}
             layoutId="view-switch-pill"
             variant="subtle"
             size="sm"

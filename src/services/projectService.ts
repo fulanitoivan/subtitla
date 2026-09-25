@@ -2,6 +2,7 @@ import type { VideoProject, ProjectLimitInfo } from '../types/project';
 import type { VideoMetadata, SubtitleSegment, SubtitleStyle } from '../types/subtitle';
 import { DEMO_VIDEOS } from '../constants/demoData';
 import { SUBTITLE_PRESETS } from '../constants/presets';
+import { saveVideoToIndexedDB, restoreVideoUrl, deleteVideoFromIndexedDB } from './videoStorageService';
 
 const STORAGE_KEY = 'captions_ai_projects_v1';
 
@@ -75,6 +76,29 @@ export const getProjectById = (id: string): VideoProject | null => {
   return all.find((p) => p.id === id) || null;
 };
 
+/**
+ * Hydrates a project's video URL from IndexedDB if the previous blob URL expired on page reload
+ */
+export const hydrateProjectVideo = async (project: VideoProject): Promise<VideoProject> => {
+  if (!project.video || !project.video.url) return project;
+
+  try {
+    const validUrl = await restoreVideoUrl(project.id, project.video.url);
+    if (validUrl && validUrl !== project.video.url) {
+      return {
+        ...project,
+        video: {
+          ...project.video,
+          url: validUrl,
+        },
+      };
+    }
+  } catch (err) {
+    console.warn('Error hydrating project video URL:', err);
+  }
+  return project;
+};
+
 export const getProjectUsage = (plan: string = 'free'): ProjectLimitInfo => {
   const projects = getProjects();
   const max = getProjectLimit(plan);
@@ -126,6 +150,12 @@ export const saveProject = (
       };
       projects[existingIndex] = updated;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+
+      // Persist video file/blob to IndexedDB if present
+      if (projectData.video.file) {
+        saveVideoToIndexedDB(projectData.id, projectData.video.file);
+      }
+
       return { success: true, project: updated };
     }
   }
@@ -140,8 +170,9 @@ export const saveProject = (
     };
   }
 
+  const newId = 'proj_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
   const newProject: VideoProject = {
-    id: 'proj_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+    id: newId,
     title: projectData.title.trim() || `Proyecto #${projects.length + 1}`,
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -152,6 +183,12 @@ export const saveProject = (
 
   const updatedProjects = [newProject, ...projects];
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProjects));
+
+  // Persist video file/blob to IndexedDB if present
+  if (projectData.video.file) {
+    saveVideoToIndexedDB(newId, projectData.video.file);
+  }
+
   return { success: true, project: newProject };
 };
 
@@ -171,5 +208,6 @@ export const deleteProject = (id: string): boolean => {
   const projects = getProjects();
   const filtered = projects.filter((p) => p.id !== id);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+  deleteVideoFromIndexedDB(id);
   return true;
 };
