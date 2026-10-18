@@ -31,19 +31,26 @@ function openDB(): Promise<IDBDatabase> {
 export async function saveVideoToIndexedDB(projectId: string, fileOrBlob: Blob | File): Promise<void> {
   try {
     const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
-      const record = {
-        projectId,
-        blob: fileOrBlob,
-        name: (fileOrBlob as File).name || 'video.mp4',
-        type: fileOrBlob.type || 'video/mp4',
-        updatedAt: Date.now(),
-      };
-      const req = store.put(record);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.onabort = () => resolve();
+        tx.onerror = () => resolve();
+        const store = tx.objectStore(STORE_NAME);
+        const record = {
+          projectId,
+          blob: fileOrBlob,
+          name: (fileOrBlob as File).name || 'video.mp4',
+          type: fileOrBlob.type || 'video/mp4',
+          updatedAt: Date.now(),
+        };
+        const req = store.put(record);
+        req.onsuccess = () => resolve();
+        req.onerror = () => resolve();
+      } catch (innerErr) {
+        console.warn('IndexedDB write skipped:', innerErr);
+        resolve();
+      }
     });
   } catch (err) {
     console.warn('Could not save video to IndexedDB:', err);

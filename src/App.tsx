@@ -9,6 +9,7 @@ import { AuthModal } from './components/Auth/AuthModal';
 import { BackgroundLiquidGlobes } from './components/BackgroundLiquidGlobes';
 import { SpringNavTabs } from './components/Navigation/SpringNavTabs';
 import { ProjectsGalleryPage } from './components/Projects/ProjectsGalleryPage';
+import { VideoSrtMerger } from './components/Merger/VideoSrtMerger';
 import { Sliders, FileText } from 'lucide-react';
 
 // Landing Page Components
@@ -39,11 +40,12 @@ import {
 import { saveProject, getProjects, hydrateProjectVideo } from './services/projectService';
 
 export function App() {
-  // Navigation & View State with URL routing sync ('landing' | 'projects' | 'studio')
-  const [currentView, setCurrentView] = useState<'landing' | 'projects' | 'studio'>(() => {
+  // Navigation & View State with URL routing sync ('landing' | 'projects' | 'merger' | 'studio')
+  const [currentView, setCurrentView] = useState<'landing' | 'projects' | 'merger' | 'studio'>(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname.toLowerCase();
       if (path === '/projects' || path === '/proyectos') return 'projects';
+      if (path === '/unir' || path === '/merger' || path === '/srt') return 'merger';
       if (path === '/editor' || path === '/studio' || path === '/app') return 'studio';
     }
     return 'landing';
@@ -55,6 +57,8 @@ export function App() {
       const path = window.location.pathname.toLowerCase();
       if (path === '/projects' || path === '/proyectos') {
         setCurrentView('projects');
+      } else if (path === '/unir' || path === '/merger' || path === '/srt') {
+        setCurrentView('merger');
       } else if (path === '/editor' || path === '/studio' || path === '/app') {
         setCurrentView('studio');
       } else {
@@ -66,9 +70,16 @@ export function App() {
     return () => window.removeEventListener('popstate', handleRouteChange);
   }, []);
 
-  const handleNavigateView = (view: 'landing' | 'projects' | 'studio') => {
+  const handleNavigateView = (view: 'landing' | 'projects' | 'merger' | 'studio') => {
     setCurrentView(view);
-    const targetPath = view === 'projects' ? '/projects' : view === 'studio' ? '/editor' : '/';
+    const targetPath =
+      view === 'projects'
+        ? '/projects'
+        : view === 'merger'
+        ? '/unir'
+        : view === 'studio'
+        ? '/editor'
+        : '/';
     if (window.location.pathname !== targetPath) {
       window.history.pushState(null, '', targetPath);
     }
@@ -348,12 +359,13 @@ export function App() {
         setCurrentView={handleNavigateView}
       />
 
-      {/* Main Content Area: Landing View vs Projects Gallery vs Studio View */}
+      {/* Main Content Area: Landing View vs Projects Gallery vs Merger vs Studio View */}
       {currentView === 'landing' ? (
         /* LANDING PAGE (Voicecheap Minimalist Pure White) */
         <main className="flex-1 flex flex-col bg-white">
           <HeroSection
             onStartCreating={() => handleNavigateView('projects')}
+            onOpenMerger={() => handleNavigateView('merger')}
           />
           <HowItWorks />
           <StylesShowcase onSelectStyleAndCreate={(styleId) => {
@@ -384,6 +396,18 @@ export function App() {
             onSelectProject={handleSelectProject}
             onNewProject={handleNewProject}
             onOpenUpgradeModal={() => handleOpenAuthModal('register')}
+          />
+        </main>
+      ) : currentView === 'merger' ? (
+        /* LOSSLESS VIDEO + SRT MERGER VIEW (UP TO 2GB) */
+        <main className="flex-1 flex flex-col bg-white">
+          <VideoSrtMerger
+            onOpenInStudio={(loadedVideo, loadedSegments) => {
+              setVideo(loadedVideo);
+              setSegments(loadedSegments);
+              handleNavigateView('studio');
+            }}
+            onNavigateHome={() => handleNavigateView('landing')}
           />
         </main>
       ) : (

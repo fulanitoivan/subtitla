@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Download, Sliders, FileText, LogOut, ChevronDown, Video, Globe, CreditCard, HelpCircle, Folder } from 'lucide-react';
+import { Sparkles, Download, Sliders, FileText, LogOut, ChevronDown, Video, Globe, CreditCard, HelpCircle, Folder, Layers } from 'lucide-react';
 import { ProjectsMenu } from './ProjectsMenu';
 import { AnimatedLogo } from './AnimatedLogo';
 import { SpringNavTabs, type SpringTabItem } from './Navigation/SpringNavTabs';
@@ -20,8 +20,8 @@ interface NavbarProps {
   setActiveTab: (tab: 'style' | 'transcript') => void;
   hasVideo: boolean;
   isProcessing: boolean;
-  currentView: 'landing' | 'projects' | 'studio';
-  setCurrentView: (view: 'landing' | 'projects' | 'studio') => void;
+  currentView: 'landing' | 'projects' | 'merger' | 'studio';
+  setCurrentView: (view: 'landing' | 'projects' | 'merger' | 'studio') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -62,6 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const viewTabs: SpringTabItem[] = [
     { id: 'landing', label: 'Inicio', icon: <Sparkles className="w-3.5 h-3.5" /> },
     { id: 'projects', label: 'Proyectos', icon: <Folder className="w-3.5 h-3.5" /> },
+    { id: 'merger', label: 'Unir Video + SRT', icon: <Layers className="w-3.5 h-3.5" /> },
     ...(hasVideo || currentView === 'studio'
       ? [{ id: 'studio', label: 'Editor', icon: <Video className="w-3.5 h-3.5" /> }]
       : []),
@@ -123,7 +124,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <SpringNavTabs
             tabs={viewTabs}
             activeId={currentView}
-            onChange={(id) => setCurrentView(id as 'landing' | 'projects' | 'studio')}
+            onChange={(id) => setCurrentView(id as 'landing' | 'projects' | 'merger' | 'studio')}
             layoutId="view-switch-pill"
             variant="subtle"
             size="sm"

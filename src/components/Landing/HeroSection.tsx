@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Sparkles, ArrowRight, CheckCircle2, Layers } from 'lucide-react';
 import { DEMO_VIDEOS } from '../../constants/demoData';
 import { SUBTITLE_PRESETS } from '../../constants/presets';
 import { SubtitleOverlay } from '../VideoPlayer/SubtitleOverlay';
@@ -8,9 +8,10 @@ import type { SubtitleStyle, SubtitleSegment, Word } from '../../types/subtitle'
 
 interface HeroSectionProps {
   onStartCreating: () => void;
+  onOpenMerger?: () => void;
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({ onStartCreating }) => {
+export const HeroSection: React.FC<HeroSectionProps> = ({ onStartCreating, onOpenMerger }) => {
   // Live Demo Video Player State inside Hero (Pure Read-Only Showcase)
   const demo = DEMO_VIDEOS[0];
   const [selectedStyle, setSelectedStyle] = useState<SubtitleStyle>(SUBTITLE_PRESETS[0]);
@@ -110,6 +111,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartCreating }) => 
               <span>Crear Subtítulos Gratis</span>
               <ArrowRight className="w-4 h-4 text-white" />
             </button>
+
+            {onOpenMerger && (
+              <button
+                onClick={onOpenMerger}
+                className="w-full sm:w-auto flex items-center justify-center space-x-2 rounded-full bg-zinc-900/5 hover:bg-zinc-900/10 border border-zinc-200/80 px-6 py-3.5 font-[Poppins] text-sm font-medium text-zinc-900 transition active:scale-95"
+              >
+                <Layers className="w-4 h-4 text-zinc-800" />
+                <span>Unir Video + SRT (Hasta 2GB)</span>
+              </button>
+            )}
 
             <button
               onClick={handleScrollToLiveDemo}
